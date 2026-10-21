@@ -1,0 +1,26 @@
+# Only what the image needs goes into the build context
+.git
+.github
+.gitignore
+.dockerignore
+tests
+fixtures
+e2e-out
+README.md
+render.yaml
+run.bat
+**/__pycache__
+**/*.pyc
+.venv
+venv
+.env
+.env.*
+node_modules
+.vscode
+.idea
+uploads
+outputs
+sessions
+*.log
+.DS_Store
+Thumbs.db

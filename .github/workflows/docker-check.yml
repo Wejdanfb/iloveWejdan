@@ -1,0 +1,61 @@
+# Builds the production image exactly as Render will, runs it the same way
+# (PORT set, 512 MB memory) and checks every file format end to end.
+name: Docker build & conversion check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (includes LibreOffice Word + Excel self-test)
+        run: docker build --progress=plain -t mch-pdf-organizer . 2>&1 | tee build.log
+
+      - name: Fonts present in the image
+        run: |
+          docker run --rm --entrypoint sh mch-pdf-organizer -c '
+            soffice --version
+            fail=0
+            check() { got=$(fc-match -f "%{family}" "$1"); echo "$1 -> $got"; case "$got" in *"$2"*) ;; *) fail=1;; esac; }
+            check "Arial" "Liberation Sans"
+            check "Times New Roman" "Liberation Serif"
+            check "Calibri" "Carlito"
+            check "Cambria" "Caladea"
+            check "Noto Naskh Arabic" "Noto Naskh Arabic"
+            exit $fail'
+
+      - name: Start container like Render (PORT=10000, 512 MB, non-root)
+        run: |
+          docker run -d --name app -e PORT=10000 --memory=512m -p 10000:10000 mch-pdf-organizer
+          docker exec app id
+
+      - name: Install checker dependency (runner only)
+        run: python3 -m pip install --quiet pypdf==5.9.0
+
+      - name: Convert Word, Excel, PDF, PNG, JPG, JPEG + error cases
+        run: python3 tests/smoke_api.py http://127.0.0.1:10000 tests/fixtures
+
+      - name: Logs never contain file names or document text
+        run: |
+          docker logs app > app.log 2>&1
+          cat app.log
+          if grep -E "report_a|policy_|audit_wide|summary_|scan_c|photo_|phone_|chart_|MARK-|Smoke Test" app.log; then
+            echo "File names or content found in logs"; exit 1; fi
+
+      - name: Restart wipes temporary files (fresh container, as on Render)
+        run: |
+          SID=$(python3 tests/smoke_api.py http://127.0.0.1:10000 tests/fixtures --keep-session | tail -n 1)
+          docker exec app sh -c 'du -sh /tmp/mch-pdf-organizer'
+          docker rm -f app
+          docker run -d --name app -e PORT=10000 --memory=512m -p 10000:10000 mch-pdf-organizer
+          python3 tests/smoke_api.py http://127.0.0.1:10000 tests/fixtures --expect-expired "$SID"
+
+      - name: Container logs
+        if: always()
+        run: docker logs app || true

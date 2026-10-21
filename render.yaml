@@ -1,0 +1,19 @@
+# Render Blueprint for MCH PDF Organizer.
+# Render dashboard -> New -> Blueprint -> pick this repository -> Apply.
+services:
+  - type: web
+    name: mch-pdf-organizer
+    runtime: docker              # builds ./Dockerfile (Python + LibreOffice)
+    region: frankfurt            # closest Render region to Saudi Arabia; can't be changed later
+    plan: 0.5c-512mb             # 0.5 CPU / 512 MB. Use 1c-2g for heavy Excel/Word use. Avoid "free" (sleeps, wipes files)
+    healthCheckPath: /healthz    # 503 if LibreOffice is missing or its start-up test fails
+    autoDeployTrigger: checksPass   # deploy a commit only after the GitHub container check passes
+    envVars:
+      - key: MAX_UPLOAD_MB
+        value: "50"
+      - key: SESSION_TTL_MINUTES
+        value: "120"
+      - key: SOFFICE_TIMEOUT
+        value: "240"
+      - key: MAX_SESSION_MB
+        value: "300"

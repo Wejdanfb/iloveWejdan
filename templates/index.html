@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MCH PDF Organizer</title>
+<link rel="icon" href="/static/logo.png">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <!-- Same logo treatment as the Chart Review tool: static/logo.png used as supplied,
+         cropped to the artwork by a uniform-scale frame. Hidden if it fails to load. -->
+    <a class="masthead-logo" href="/" id="logo-link" tabindex="-1" aria-hidden="true">
+      <span class="logo-frame">
+        <img src="/static/logo.png" alt="" class="masthead-logo-img" id="logo-img">
+      </span>
+    </a>
+    <div class="masthead-text">
+      <h1><a class="home-link" id="home-link" href="/" title="Back to the start screen">MCH PDF Organizer</a></h1>
+      <p>Document Merge &amp; PDF Export</p>
+    </div>
+  </header>
+
+  <nav class="stepper" aria-label="Steps">
+    <ol>
+      <li><button type="button" class="step" data-step="1" id="step-btn-1"><span class="step-num">1</span><span class="step-label">Upload files</span></button></li>
+      <li><button type="button" class="step" data-step="2" id="step-btn-2"><span class="step-num">2</span><span class="step-label">Organize pages</span></button></li>
+      <li><button type="button" class="step" data-step="3" id="step-btn-3"><span class="step-num">3</span><span class="step-label">Export PDF</span></button></li>
+    </ol>
+  </nav>
+
+  <div class="error-banner" id="error-banner" hidden role="alert">
+    <p id="error-message"></p>
+    <button type="button" class="btn-icon error-close" id="error-close" aria-label="Dismiss">&times;</button>
+  </div>
+
+  <main>
+
+    <!-- ============ STEP 1: UPLOAD ============ -->
+    <section class="panel" id="panel-upload" data-step="1">
+      <div class="panel-head">
+        <h2>1. Upload files</h2>
+        <p class="panel-sub">Add the documents to combine, in any order and any mix of formats.
+          Each file is converted to PDF pages as soon as it is added.</p>
+      </div>
+
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Add files">
+        <div class="dropzone-inner">
+          <p class="dropzone-title">Drag &amp; drop files here</p>
+          <p class="dropzone-sub">or</p>
+          <button type="button" class="btn btn-primary" id="btn-choose">Choose files</button>
+          <p class="dropzone-hint">Excel <code>.xlsx</code> <code>.xls</code> &middot; Word <code>.docx</code> <code>.doc</code>
+            &middot; <code>.pdf</code> &middot; Images <code>.png</code> <code>.jpg</code> <code>.jpeg</code>
+            &middot; up to {{ max_upload_mb }} MB each</p>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="{{ accept }}" multiple hidden>
+
+      <div class="image-mode">
+        <span class="opt-label" id="image-mode-label">Image pages</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="image-mode-label">
+          <label><input type="radio" name="image-mode" value="a4" checked><span>Fit on A4 page</span></label>
+          <label><input type="radio" name="image-mode" value="original"><span>Keep original image size</span></label>
+        </div>
+      </div>
+
+      <div id="file-block" hidden>
+        <table class="file-table" id="file-table">
+          <thead>
+            <tr>
+              <th class="col-order">Order</th>
+              <th class="col-name">File</th>
+              <th class="col-size">Size</th>
+              <th class="col-count">Pages</th>
+              <th class="col-status">Status</th>
+              <th class="col-actions"><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="file-table-body"></tbody>
+        </table>
+        <div class="add-more">
+          <button type="button" class="btn btn-ghost" id="btn-add-more">+ Add more files</button>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <p class="generate-summary" id="upload-summary">Add files to begin.</p>
+        <button type="button" class="btn btn-primary btn-large" id="btn-to-organize" disabled>Organize pages &rarr;</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 2: ORGANIZE ============ -->
+    <section class="panel" id="panel-organize" data-step="2" hidden>
+      <div class="panel-head">
+        <h2>2. Organize pages</h2>
+        <p class="panel-sub">Drag pages to change their order (on a phone, press and hold a page, then drag).
+          Use the buttons under each page to rotate it or leave it out. Tap a page number to move it to a set position.</p>
+      </div>
+
+      <div class="docs-block">
+        <div class="docs-head">
+          <h3 class="sub-h">Documents</h3>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-add-more-2">+ Add files</button>
+        </div>
+        <ul class="doc-list" id="doc-list"></ul>
+        <p class="table-note">Moving a document up or down regroups all its pages in that document order.</p>
+      </div>
+
+      <div class="organize-bar">
+        <p class="generate-summary" id="organize-summary"></p>
+        <div class="organize-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-include-all">Include all pages</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-reset-order">Reset order</button>
+        </div>
+      </div>
+
+      <ol class="page-grid" id="page-grid" aria-label="Pages of the combined PDF"></ol>
+      <p class="empty-note" id="grid-empty" hidden>No pages yet &mdash; add files in step 1.</p>
+
+      <div class="nav-row">
+        <button type="button" class="btn btn-ghost" id="btn-back-upload">&larr; Files</button>
+        <button type="button" class="btn btn-primary btn-large" id="btn-to-export" disabled>Preview &amp; export &rarr;</button>
+      </div>
+    </section>
+
+    <!-- ============ STEP 3: EXPORT ============ -->
+    <section class="panel" id="panel-export" data-step="3" hidden>
+      <div class="panel-head">
+        <h2>3. Export PDF</h2>
+        <p class="panel-sub">This preview is the actual combined PDF that will be downloaded.</p>
+      </div>
+
+      <div class="building" id="building" hidden>
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Building the combined PDF&hellip;</span>
+      </div>
+
+      <div id="export-ready" hidden>
+        <div id="result-details">
+          <dl>
+            <dt>Total pages</dt><dd id="out-pages"></dd>
+            <dt>Documents</dt><dd id="out-docs"></dd>
+            <dt>File size</dt><dd id="out-size"></dd>
+          </dl>
+        </div>
+
+        <div class="filename-field">
+          <label for="output-filename">Output file name</label>
+          <div class="filename-input-row">
+            <input type="text" id="output-filename" value="MCH_Combined_Document" maxlength="150" autocomplete="off" spellcheck="false">
+            <span class="filename-ext">.pdf</span>
+          </div>
+          <p class="filename-hint">Characters <code>\ / : * ? " &lt; &gt; |</code> aren't allowed and will be removed.</p>
+        </div>
+
+        <div class="download-row">
+          <button type="button" class="btn btn-primary btn-large" id="btn-download">Download PDF</button>
+          <button type="button" class="btn btn-ghost" id="btn-back-organize">&larr; Back to organize</button>
+          <button type="button" class="btn btn-ghost btn-danger" id="btn-start-over">Start over</button>
+        </div>
+
+        <h3 class="sub-h">Preview</h3>
+        <div class="preview" id="preview"></div>
+
+        <details class="details">
+          <summary>Page sequence</summary>
+          <ol class="sequence-list" id="sequence-list"></ol>
+        </details>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p class="privacy-note">Files are converted on this tool's own server, never sent to outside services,
+      and are deleted when you start over or after {{ ttl_minutes }} minutes without use.</p>
+    <p class="credit">&copy; 2026 Wejdan Boharam. All Rights Reserved.</p>
+  </footer>
+
+  <!-- Shared confirmation dialog (Start over, regroup by document) -->
+  <dialog id="confirm-dialog" class="home-dialog" aria-labelledby="confirm-title">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-text"></p>
+    <div class="home-dialog-actions">
+      <button type="button" class="btn btn-ghost" id="confirm-cancel">Keep working</button>
+      <button type="button" class="btn btn-primary" id="confirm-ok">Continue</button>
+    </div>
+  </dialog>
+
+  <!-- Move page to a position -->
+  <dialog id="move-dialog" class="home-dialog" aria-labelledby="move-title">
+    <h2 id="move-title">Move page</h2>
+    <p id="move-text"></p>
+    <form method="dialog" id="move-form">
+      <div class="move-row">
+        <label for="move-input">New position</label>
+        <input type="number" id="move-input" min="1" step="1" inputmode="numeric">
+      </div>
+      <div class="home-dialog-actions">
+        <button type="button" class="btn btn-ghost" id="move-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="move-ok">Move</button>
+      </div>
+    </form>
+  </dialog>
+
+</div>
+
+<script src="/static/vendor/pdf.min.js"></script>
+<script src="/static/vendor/Sortable.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
