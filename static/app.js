@@ -14,9 +14,32 @@
   const STORE_KEY = "mch-pdf-organizer-v1";
   const SUPPORTED = { ".pdf": "pdf", ".png": "image", ".jpg": "image", ".jpeg": "image",
                       ".docx": "word", ".doc": "word", ".xlsx": "excel", ".xls": "excel" };
-  const FORMAT_LABEL = { pdf: "PDF", image: "IMAGE", word: "WORD", excel: "EXCEL" };
-  // Document colour tags - muted tones that sit with the teal/gold palette
-  const DOC_COLORS = ["#146b71", "#b8963f", "#4f6d8f", "#7a5a7e", "#6b7d3a", "#a0583a", "#5d8a85", "#8a7454"];
+  // File type -> colour class (ft-<type>, colours in style.css) and badge label.
+  // The colour shows the FORMAT only; it never changes with upload/conversion status.
+  const FILE_TYPE_BY_EXT = {
+    ".xls": "excel", ".xlsx": "excel", ".xlsm": "excel", ".xltx": "excel",
+    ".doc": "word", ".docx": "word", ".docm": "word", ".dotx": "word",
+    ".pdf": "pdf",
+    ".gsheet": "sheets",
+    ".png": "image", ".jpg": "image", ".jpeg": "image", ".gif": "image", ".webp": "image",
+    ".bmp": "image", ".tif": "image", ".tiff": "image", ".heic": "image", ".heif": "image",
+    ".avif": "image", ".svg": "image",
+    ".ppt": "ppt", ".pptx": "ppt", ".pptm": "ppt", ".pps": "ppt", ".ppsx": "ppt",
+  };
+  const FILE_TYPE_LABEL = { excel: "EXCEL", word: "WORD", pdf: "PDF", sheets: "SHEETS",
+                            image: "IMAGE", ppt: "PPT" };
+
+  function fileType(name, mime) {
+    const byExt = FILE_TYPE_BY_EXT[extOf(name || "")];      // extOf lower-cases: .PDF == .pdf
+    if (byExt) return byExt;
+    if (mime === "application/vnd.google-apps.spreadsheet") return "sheets";
+    if (mime && mime.startsWith("image/")) return "image";
+    return "other";
+  }
+
+  function fileTypeLabel(f) {
+    return FILE_TYPE_LABEL[f.ftype] || (f.ext ? f.ext.slice(1).toUpperCase() : "FILE");
+  }
   const DEFAULT_NAME = "MCH_Combined_Document";
   const ICON = {
     rotl: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>',
@@ -56,7 +79,6 @@
   let maxUploadMb = 50;
   let uploading = false;
   let nextCid = 1;
-  let colorIdx = 0;
 
   function freshState() {
     return { sid: null, step: 1, files: [], seq: [], customized: false,
@@ -191,10 +213,10 @@
     state.filename = saved.filename || DEFAULT_NAME;
     state.customized = !!saved.customized;
     state.files = (saved.files || []).filter(f => onServer.has(f.id) && onServer.get(f.id).version === f.version);
+    state.files.forEach(f => { f.ftype = fileType(f.name); delete f.color; });   // older saves had per-document colours
     const cids = new Set(state.files.map(f => f.cid));
     state.seq = (saved.seq || []).filter(p => cids.has(p.file));
     nextCid = Math.max(0, ...state.files.map(f => f.cid)) + 1;
-    colorIdx = state.files.length;
     const step = state.files.length ? Math.min(saved.step || 1, includedPages().length ? 3 : 2) : 1;
     if (step === 3) goStep(3); else goStep(step);
   }
@@ -210,7 +232,7 @@
       const entry = {
         cid: nextCid++, id: null, name: file.name, ext, kind: SUPPORTED[ext] || null, size: file.size,
         status: "queued", progress: 0, error: null, pages: 0, sizes: [], sheets: null, version: 0,
-        color: DOC_COLORS[colorIdx++ % DOC_COLORS.length], file,
+        ftype: fileType(file.name, file.type), file,
       };
       if (!entry.kind) {
         entry.status = "error";
@@ -408,8 +430,8 @@
     el.fileBody.innerHTML = "";
     state.files.forEach((f, i) => {
       const tr = document.createElement("tr");
-      tr.style.setProperty("--doc", f.color);
-      const fmt = f.kind ? FORMAT_LABEL[f.kind] : (f.ext || "?").replace(".", "").toUpperCase();
+      tr.className = "ft-" + f.ftype;
+      const fmt = fileTypeLabel(f);
       let sheetHtml = "";
       if (f.kind === "excel" && f.status === "ready" && f.sheets) {
         const chosen = f.sheets.filter(s => s.selected).map(s => s.name);
@@ -465,7 +487,7 @@
       const i = state.files.indexOf(f);
       const inc = state.seq.filter(p => p.file === f.cid && !p.excluded).length;
       const li = document.createElement("li");
-      li.style.setProperty("--doc", f.color);
+      li.className = "ft-" + f.ftype;
       li.dataset.cid = f.cid;
       li.innerHTML = `<span class="doc-bar"></span><span class="doc-name">${esc(f.name)}</span>
         <span class="doc-pages">${inc} of ${f.pages} page${f.pages === 1 ? "" : "s"}</span>
@@ -486,10 +508,9 @@
       const f = fileByCid(p.file);
       if (!p.excluded) pos++;
       const li = document.createElement("li");
-      li.className = "page-card" + (p.excluded ? " excluded" : "");
+      li.className = "page-card ft-" + f.ftype + (p.excluded ? " excluded" : "");
       li.dataset.key = p.key;
       li.tabIndex = 0;
-      li.style.setProperty("--doc", f.color);
       const size = f.sizes[p.page] || [595, 842];
       const sw = (p.rotate % 180) ? size[1] : size[0], sh = (p.rotate % 180) ? size[0] : size[1];
       li.setAttribute("aria-label", `${p.excluded ? "Left out" : "Page " + pos}: ${f.name}, page ${p.page + 1}`);

@@ -628,7 +628,30 @@ footer .credit {
 :root {
   --warn: #8a6d1f;
   --warn-bg: var(--gold-100);
+
+  /* File type colours - represent the FORMAT only, never the processing status.
+     --ft-*      exact brand colour: indicator dot, document bar, page-card edge, badge border
+     --ft-*-bg   ~10% tint of it: badge background
+     --ft-*-ink  same hue, darkened where needed so badge text is >= 5:1 on its tint */
+  --ft-excel: #217346;  --ft-excel-bg: #E9F1EC;  --ft-excel-ink: #217346;
+  --ft-word: #2B579A;   --ft-word-bg: #EAEEF5;   --ft-word-ink: #2B579A;
+  --ft-pdf: #D32F2F;    --ft-pdf-bg: #FBEAEA;    --ft-pdf-ink: #BE2A2A;
+  --ft-sheets: #0F9D58; --ft-sheets-bg: #E7F5EE; --ft-sheets-ink: #0B7441;
+  --ft-image: #4285F4;  --ft-image-bg: #ECF3FE;  --ft-image-ink: #3265B9;
+  --ft-ppt: #E37400;    --ft-ppt-bg: #FCF1E6;    --ft-ppt-ink: #9F5100;
+  --ft-other: #64748B;  --ft-other-bg: #F0F1F3;  --ft-other-ink: #58667A;
 }
+
+/* A row, document entry or page card carries one .ft-<type> class; everything inside
+   reads these variables. --doc is the existing variable used by the dot, the document
+   bar and the page-card edge. */
+.ft-excel  { --doc: var(--ft-excel);  --ft-bg: var(--ft-excel-bg);  --ft-ink: var(--ft-excel-ink); }
+.ft-word   { --doc: var(--ft-word);   --ft-bg: var(--ft-word-bg);   --ft-ink: var(--ft-word-ink); }
+.ft-pdf    { --doc: var(--ft-pdf);    --ft-bg: var(--ft-pdf-bg);    --ft-ink: var(--ft-pdf-ink); }
+.ft-sheets { --doc: var(--ft-sheets); --ft-bg: var(--ft-sheets-bg); --ft-ink: var(--ft-sheets-ink); }
+.ft-image  { --doc: var(--ft-image);  --ft-bg: var(--ft-image-bg);  --ft-ink: var(--ft-image-ink); }
+.ft-ppt    { --doc: var(--ft-ppt);    --ft-bg: var(--ft-ppt-bg);    --ft-ink: var(--ft-ppt-ink); }
+.ft-other  { --doc: var(--ft-other);  --ft-bg: var(--ft-other-bg);  --ft-ink: var(--ft-other-ink); }
 
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -685,7 +708,12 @@ code { font-family: var(--font-mono); font-size: 12px; background: var(--paper);
 .fmt-tag {
   display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 4px;
   font-size: 10.5px; font-weight: 700; letter-spacing: .04em; vertical-align: 1px;
-  background: var(--paper); border: 1px solid var(--border); color: var(--ink-soft);
+  background: var(--ft-bg, var(--paper));
+  border: 1px solid color-mix(in srgb, var(--doc, var(--border)) 35%, transparent);
+  color: var(--ft-ink, var(--ink-soft));
+}
+@supports not (border-color: color-mix(in srgb, red 35%, transparent)) {
+  .fmt-tag { border-color: var(--doc, var(--border)); }
 }
 .doc-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--doc, var(--border-strong)); margin-right: 6px; vertical-align: 0; }
 .file-num { font-variant-numeric: tabular-nums; color: var(--ink-soft); white-space: nowrap; }
