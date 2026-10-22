@@ -23,8 +23,8 @@ TINT = {"excel": "#E9F1EC", "word": "#EAEEF5", "pdf": "#FBEAEA", "sheets": "#E7F
         "image": "#ECF3FE", "ppt": "#FCF1E6", "other": "#F0F1F3"}
 INK = {"excel": "#217346", "word": "#2B579A", "pdf": "#BE2A2A", "sheets": "#0B7441",
        "image": "#3265B9", "ppt": "#9F5100", "other": "#58667A"}
-STATUS = {"Ready": ("rgb(234, 243, 238)", "rgb(47, 125, 90)"),        # unchanged existing styles
-          "Not added": ("rgb(251, 236, 234)", "rgb(178, 58, 52)")}
+STATUS = {"Ready": ("rgb(230, 247, 243)", "rgb(11, 122, 100)"),       # --success-bg / --success-ink
+          "Not added": ("rgb(253, 236, 234)", "rgb(180, 35, 24)")}     # --error-bg / --error
 
 # name in upload -> (source fixture, expected type, expected badge, expected status)
 FILES = {
