@@ -72,13 +72,14 @@ html, body {
   margin-bottom: 36px;
 }
 
-/* Logo: static/logo.png, shown as supplied. The artwork occupies only the middle of a
-   1080x1350 transparent canvas, so the frame crops to that area (plus a small margin) by
-   scaling the whole image uniformly and offsetting it - aspect ratio is never changed.
+/* Logo: static/logo.png ("I love Wejdan"), shown as supplied. The artwork occupies only
+   x 99-991, y 362-862 of a 1080x1350 transparent canvas, so the frame crops to that area
+   (plus an 8px margin: 908x516) by scaling the whole image uniformly and offsetting it -
+   aspect ratio is never changed.
    --logo is the displayed width of the artwork area. If the image can't load, the
    .logo-failed class (set by the <img> onerror) hides the logo entirely. */
 .masthead-logo {
-  --logo: 60px;
+  --logo: 100px;
   flex: 0 0 auto;
   display: flex;
   align-items: center;
@@ -88,16 +89,16 @@ html, body {
   position: relative;
   display: block;
   width: var(--logo);
-  height: calc(var(--logo) * 0.9938);
+  height: calc(var(--logo) * 0.5683);
   overflow: hidden;
 }
 .masthead-logo-img {
   position: absolute;
   display: block;
-  width: calc(var(--logo) * 2.236);
+  width: calc(var(--logo) * 1.1894);
   height: auto;
-  left: calc(var(--logo) * -0.5839);
-  top: calc(var(--logo) * -0.9213);
+  left: calc(var(--logo) * -0.1002);
+  top: calc(var(--logo) * -0.3899);
   max-width: none;
 }
 .masthead-logo.logo-failed { display: none; }
