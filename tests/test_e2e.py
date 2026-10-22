@@ -21,7 +21,8 @@ import urllib.request
 from playwright.sync_api import sync_playwright
 from pypdf import PdfReader
 
-BASE = os.environ.get("BASE", "http://127.0.0.1:5052")
+BASE = os.environ.get("BASE", "http://127.0.0.1:5052")          # where the page is served
+API = os.environ.get("API", BASE)                               # where the API runs (Render in split mode)
 FX = os.environ["FX"]
 OUT = os.environ.get("OUT", "e2e-out")
 os.makedirs(OUT, exist_ok=True)
@@ -91,7 +92,7 @@ _src_cache = {}
 def source_reader(sid, fid, version):
     key = (fid, version)
     if key not in _src_cache:
-        with urllib.request.urlopen(f"{BASE}/api/sessions/{sid}/files/{fid}/pdf?v={version}") as r:
+        with urllib.request.urlopen(f"{API}/api/sessions/{sid}/files/{fid}/pdf?v={version}") as r:
             _src_cache[key] = PdfReader(io.BytesIO(r.read()))
     return _src_cache[key]
 
@@ -414,7 +415,7 @@ def t_reset(b):
     assert pg.eval_on_selector_all("#file-table-body tr", "e => e.length") == 0
     code = None
     try:
-        urllib.request.urlopen(f"{BASE}/api/sessions/{sid}")
+        urllib.request.urlopen(f"{API}/api/sessions/{sid}")
     except urllib.error.HTTPError as e:
         code = e.code
     assert code == 404, f"session still on server ({code})"
@@ -445,7 +446,7 @@ def t_restart(b):
     to_step(pg, 2)
     sid = st(pg)["sid"]
     # A Render restart/redeploy starts with an empty disk: the session no longer exists
-    req = urllib.request.Request(f"{BASE}/api/sessions/{sid}", method="DELETE")
+    req = urllib.request.Request(f"{API}/api/sessions/{sid}", method="DELETE")
     urllib.request.urlopen(req).read()
     pg.click("#btn-to-export")
     pg.wait_for_selector("#error-banner:not([hidden])", timeout=20000)

@@ -20,6 +20,36 @@ Upload Excel, Word, PDF and image files, arrange their pages, and download **one
 
 ---
 
+## Deployment architecture (Vercel page + Render processing)
+
+```
+Browser ── page, styles, scripts ──▶ Vercel  (https://ilove-wejdan.vercel.app)
+   │                                 Flask on Vercel's Python runtime: serves the UI only
+   │
+   └──── every upload, conversion, build and download ──▶ Render  (https://ilovewejdan.onrender.com)
+                                     Docker image with LibreOffice; holds the session files
+```
+
+**Why the files don't go through Vercel.** Vercel's Python runtime has no LibreOffice, so Word
+and Excel can't be converted there. Vercel's container runtime (`Dockerfile.vercel`) can
+install LibreOffice, but it doesn't fit this app either:
+- it is in Beta;
+- request and response bodies are capped at 4.5 MB, while uploads here go up to 50 MB;
+- instances keep nothing between requests, but a session's files must stay on one server
+  from upload to download.
+
+So when the app runs on Vercel (`VERCEL` is set), the page tells the browser to send
+everything straight to Render.
+
+| Setting | Where | Default | Purpose |
+|---|---|---|---|
+| `API_BASE_URL` | Vercel (optional) | `https://ilovewejdan.onrender.com` when on Vercel, otherwise same site | Backend the page talks to |
+| `CORS_ORIGINS` | Render (optional) | `https://ilove-wejdan.vercel.app,https://ilove-wejdan-*-wejdan6.vercel.app` | Sites allowed to call the API. Add a custom domain here if you attach one. |
+
+- **Credentials:** no secrets are involved. Sessions are random ids, and no cookies or credentials are sent.
+- **Browser security:** the page's Content-Security-Policy allows connections only to its own site and the API.
+- **Check the split end to end:** `BASE=https://ilove-wejdan.vercel.app API=https://ilovewejdan.onrender.com python tests/test_split.py`
+
 ## Deploying from GitHub to Render: step by step
 
 ### What gets deployed

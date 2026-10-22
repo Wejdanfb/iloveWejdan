@@ -48,6 +48,10 @@
     back: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>',
   };
 
+  // Where the server API lives. Empty = same site (Render, local). On the Vercel-hosted
+  // page this is the Render backend, set by the server in <body data-api-base="...">.
+  const API = (document.body.dataset.apiBase || "").replace(/\/+$/, "");
+
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = "/static/vendor/pdf.worker.min.js";
   }
@@ -179,7 +183,7 @@
 
   async function ensureSession() {
     if (state.sid) return state.sid;
-    const data = await api("POST", "/api/sessions");
+    const data = await api("POST", API + "/api/sessions");
     state.sid = data.session;
     maxUploadMb = data.max_upload_mb || maxUploadMb;
     save();
@@ -205,7 +209,7 @@
     try { saved = JSON.parse(sessionStorage.getItem(STORE_KEY) || "null"); } catch (e) { saved = null; }
     if (!saved || !saved.sid) return;
     let server;
-    try { server = await api("GET", `/api/sessions/${saved.sid}`); }
+    try { server = await api("GET", `${API}/api/sessions/${saved.sid}`); }
     catch (e) { try { sessionStorage.removeItem(STORE_KEY); } catch (_) {} return; }
     const onServer = new Map(server.files.map(m => [m.id, m]));
     state.sid = saved.sid;
@@ -258,7 +262,7 @@
       entry.status = "uploading"; entry.progress = 0; render();
       const meta = await uploadOne(entry);
       if (!state.files.includes(entry)) {          // removed while converting
-        api("DELETE", `/api/sessions/${state.sid}/files/${meta.id}`).catch(() => {});
+        api("DELETE", `${API}/api/sessions/${state.sid}/files/${meta.id}`).catch(() => {});
       } else {
         applyMeta(entry, meta);
       }
@@ -280,7 +284,7 @@
       fd.append("file", entry.file, entry.name);
       fd.append("image_mode", state.imageMode);
       const xhr = new XMLHttpRequest();
-      xhr.open("POST", `/api/sessions/${state.sid}/files`);
+      xhr.open("POST", `${API}/api/sessions/${state.sid}/files`);
       xhr.upload.onprogress = (ev) => {
         if (ev.lengthComputable) { entry.progress = Math.round(ev.loaded / ev.total * 100); renderFileStatus(entry); }
       };
@@ -327,7 +331,7 @@
     state.files = state.files.filter(f => f !== entry);
     state.seq = state.seq.filter(p => p.file !== cid);
     state.output = null;
-    if (entry.id && state.sid) api("DELETE", `/api/sessions/${state.sid}/files/${entry.id}`).catch(() => {});
+    if (entry.id && state.sid) api("DELETE", `${API}/api/sessions/${state.sid}/files/${entry.id}`).catch(() => {});
     render();
   }
 
@@ -335,7 +339,7 @@
     clearError();
     entry.status = "converting"; render();
     try {
-      const meta = await api("POST", `/api/sessions/${state.sid}/files/${entry.id}/reconvert`, body);
+      const meta = await api("POST", `${API}/api/sessions/${state.sid}/files/${entry.id}/reconvert`, body);
       applyMeta(entry, meta);
     } catch (e) {
       entry.status = "ready";
@@ -603,7 +607,7 @@
     const [fid, version, page, rot] = key.split(":");
     const f = state.files.find(x => x.id === fid);
     if (!f) return;
-    const doc = await loadDoc(`/api/sessions/${state.sid}/files/${fid}/pdf?v=${version}`, `${fid}:${version}`);
+    const doc = await loadDoc(`${API}/api/sessions/${state.sid}/files/${fid}/pdf?v=${version}`, `${fid}:${version}`);
     const pg = await doc.getPage(Number(page) + 1);
     const rotation = (pg.rotate + Number(rot)) % 360;
     const base = pg.getViewport({ scale: 1, rotation });
@@ -698,7 +702,7 @@
     el.building.hidden = false;
     try {
       const pages = includedPages().map(p => ({ file: fileByCid(p.file).id, page: p.page, rotate: p.rotate }));
-      const res = await api("POST", `/api/sessions/${state.sid}/build`, { pages, filename: cleanFilename(el.filename.value) });
+      const res = await api("POST", `${API}/api/sessions/${state.sid}/build`, { pages, filename: cleanFilename(el.filename.value) });
       if (token !== buildToken) return;
       state.output = { id: res.output, pages: res.pages, size: res.size, sig,
                        seq: includedPages().map(p => ({ file: p.file, page: p.page, rotate: p.rotate })) };
@@ -726,7 +730,7 @@
 
     // Preview: render the actual combined PDF
     el.preview.innerHTML = "";
-    const url = `/api/sessions/${state.sid}/outputs/${o.id}`;
+    const url = `${API}/api/sessions/${state.sid}/outputs/${o.id}`;
     o.seq.forEach((p, i) => {
       const f = fileByCid(p.file);
       const div = document.createElement("div");
@@ -776,10 +780,10 @@
     el.filename.value = state.filename;
     save();
     try {
-      await api("POST", `/api/sessions/${state.sid}/outputs/${o.id}/name`, { filename: state.filename });
+      await api("POST", `${API}/api/sessions/${state.sid}/outputs/${o.id}/name`, { filename: state.filename });
     } catch (e) { handleApiError(e); return; }
     const a = document.createElement("a");
-    a.href = `/api/sessions/${state.sid}/outputs/${o.id}?download=1`;
+    a.href = `${API}/api/sessions/${state.sid}/outputs/${o.id}?download=1`;
     a.download = state.filename + ".pdf";
     document.body.appendChild(a);
     a.click();
@@ -790,7 +794,7 @@
 
   function resetAll(serverGone) {
     const sid = state.sid;
-    if (sid && !serverGone) api("DELETE", `/api/sessions/${sid}`).catch(() => {});
+    if (sid && !serverGone) api("DELETE", `${API}/api/sessions/${sid}`).catch(() => {});
     buildToken++;
     state = freshState();
     thumbCache.clear();

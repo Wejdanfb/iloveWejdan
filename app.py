@@ -16,6 +16,7 @@ import hashlib
 import json
 import logging
 import os
+import fnmatch
 import re
 import shutil
 import threading
@@ -33,6 +34,23 @@ MAX_SESSION_MB = int(os.environ.get("MAX_SESSION_MB", "300"))     # all files of
 MIN_FREE_DISK_MB = int(os.environ.get("MIN_FREE_DISK_MB", "200"))  # refuse uploads below this
 MAX_PAGES = int(os.environ.get("MAX_PAGES", "3000"))               # pages in one combined PDF
 DEFAULT_NAME = "MCH_Combined_Document"
+
+# --- Split deployment: page on Vercel, processing on Render -------------------------
+# Vercel's Python runtime has no LibreOffice, keeps no files between requests and caps
+# request/response bodies at 4.5 MB, so when this app runs on Vercel it only serves the
+# page; the browser sends every file straight to the Render service (API_BASE_URL).
+ON_VERCEL = bool(os.environ.get("VERCEL"))
+DEFAULT_RENDER_API = "https://ilovewejdan.onrender.com"
+API_BASE = (os.environ.get("API_BASE_URL") or (DEFAULT_RENDER_API if ON_VERCEL else "")).rstrip("/")
+if ON_VERCEL:
+    os.environ.setdefault("MCH_SKIP_SELFTEST", "1")     # no LibreOffice there by design
+
+# Sites allowed to call this API from the browser (only matters on the Render backend).
+# Comma-separated; "*" wildcards allowed. Add a custom domain here if you attach one.
+CORS_ORIGINS = [o.strip().rstrip("/") for o in os.environ.get(
+    "CORS_ORIGINS",
+    "https://ilove-wejdan.vercel.app,https://ilove-wejdan-*-wejdan6.vercel.app",
+).split(",") if o.strip()]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 # Request logging could reveal URLs only (ids, never names), but keep it quiet anyway.
@@ -153,18 +171,40 @@ def security_headers(resp):
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("Referrer-Policy", "no-referrer")
     resp.headers.setdefault("X-Frame-Options", "DENY")
+    connect = "'self'" + (f" {API_BASE}" if API_BASE else "")
     resp.headers.setdefault(
         "Content-Security-Policy",
         "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; "
-        "script-src 'self'; worker-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'")
+        f"script-src 'self'; worker-src 'self' blob:; connect-src {connect}; frame-ancestors 'none'")
     if request.path.startswith("/api/"):
         resp.headers["Cache-Control"] = "no-store"
+    _add_cors(resp)
     return resp
+
+
+def _origin_allowed(origin: str) -> bool:
+    return any(fnmatch.fnmatchcase(origin, pat) for pat in CORS_ORIGINS)
+
+
+def _add_cors(resp):
+    """Let the Vercel-hosted page call this API. No cookies or credentials are used
+    (each session is identified by a random id in the URL), so none are allowed."""
+    if not (request.path.startswith("/api/") or request.path == "/healthz"):
+        return
+    origin = (request.headers.get("Origin") or "").rstrip("/")
+    resp.headers.add("Vary", "Origin")
+    if origin and _origin_allowed(origin):
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        resp.headers["Access-Control-Expose-Headers"] = "Content-Disposition"
+        resp.headers["Access-Control-Max-Age"] = "600"
 
 
 @app.get("/")
 def index():
     return render_template("index.html", max_upload_mb=MAX_UPLOAD_MB, ttl_minutes=storage.TTL // 60,
+                           api_base=API_BASE,
                            accept=",".join(converter.SUPPORTED_EXTENSIONS))
 
 
