@@ -11,11 +11,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
 
-# 1) LibreOffice Writer + Calc, used headless for Word/Excel -> PDF, and tini as the
+# 1) LibreOffice Writer + Calc + Impress, used headless for Word/Excel/PowerPoint -> PDF
+#    (Impress is the component that opens .ppt/.pptx), and tini as the
 #    container's init (forwards signals and reaps LibreOffice processes that were stopped
 #    after a timeout). Required: the build stops here if they can't be installed.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc fontconfig tini \
+ && apt-get install -y --no-install-recommends libreoffice-writer libreoffice-calc libreoffice-impress fontconfig tini \
  && rm -rf /var/lib/apt/lists/*
 
 # 2) Fonts so documents keep their layout: Liberation (= Arial/Times New Roman/Courier New),
@@ -39,6 +40,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY app.py converter.py pdf_ops.py storage.py gunicorn.conf.py ./
+COPY assets ./assets
 COPY templates ./templates
 COPY static ./static
 
@@ -53,7 +55,8 @@ ENV HOME=/home/appuser \
     PORT=10000
 
 # 3) Build-time proof that LibreOffice works inside this image: convert a real Word
-#    document and a real workbook to PDF as the app user. The build fails otherwise.
+#    document, a real workbook and a real presentation to PDF as the app user.
+#    The build fails otherwise (e.g. if Impress were missing).
 RUN python converter.py --self-test && rm -rf /tmp/mch-*
 
 EXPOSE 10000

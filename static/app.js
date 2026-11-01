@@ -13,7 +13,8 @@
 
   const STORE_KEY = "mch-pdf-organizer-v1";
   const SUPPORTED = { ".pdf": "pdf", ".png": "image", ".jpg": "image", ".jpeg": "image",
-                      ".docx": "word", ".doc": "word", ".xlsx": "excel", ".xls": "excel" };
+                      ".docx": "word", ".doc": "word", ".xlsx": "excel", ".xls": "excel",
+                      ".pptx": "powerpoint", ".ppt": "powerpoint" };
   // File type -> colour class (ft-<type>, colours in style.css) and badge label.
   // The colour shows the FORMAT only; it never changes with upload/conversion status.
   const FILE_TYPE_BY_EXT = {
@@ -240,7 +241,7 @@
       };
       if (!entry.kind) {
         entry.status = "error";
-        entry.error = "This file type isn't supported. Use Excel, Word, PDF, PNG or JPG files.";
+        entry.error = "This file type isn't supported. Use Excel, Word, PowerPoint, PDF, PNG or JPG files.";
       } else if (file.size === 0) {
         entry.status = "error"; entry.error = "The file is empty (0 bytes).";
       } else if (file.size > maxUploadMb * 1024 * 1024) {

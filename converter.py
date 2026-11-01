@@ -41,6 +41,7 @@ KINDS = {
     ".png": "image", ".jpg": "image", ".jpeg": "image",
     ".docx": "word", ".doc": "word",
     ".xlsx": "excel", ".xls": "excel",
+    ".pptx": "powerpoint", ".ppt": "powerpoint",
 }
 SUPPORTED_EXTENSIONS = tuple(KINDS)
 
@@ -101,6 +102,8 @@ def convert(src: str, ext: str, workdir: str, *, sheets: list[str] | None = None
             res = _from_image(src, out, image_mode)
         elif kind == "word":
             res = _from_word(src, ext, out, workdir)
+        elif kind == "powerpoint":
+            res = _from_powerpoint(src, ext, out, workdir)
         else:
             res = _from_excel(src, ext, out, workdir, sheets)
         os.replace(out, final)
@@ -254,12 +257,12 @@ def _office_precheck(src: str, ext: str) -> str:
             raise
         except Exception:
             pass        # not something msoffcrypto understands; LibreOffice decides
-        if ext in (".docx", ".xlsx"):
+        if ext in (".docx", ".xlsx", ".pptx"):
             # An OLE container with a .docx/.xlsx name is either encrypted OOXML
             # (caught above) or a legacy file with the wrong extension - both fine for LO.
             pass
         return "cfb"
-    if ext in (".doc", ".xls"):
+    if ext in (".doc", ".xls", ".ppt"):
         # LibreOffice also opens RTF/HTML saved with a .doc/.xls name; let it try.
         return "other"
     raise ConversionError("corrupt", "The file is damaged or isn't a real Office document.")
@@ -363,6 +366,33 @@ def _from_word(src: str, ext: str, out: str, workdir: str) -> Result:
     finally:
         shutil.rmtree(stage, ignore_errors=True)
     n, sizes = inspect_pdf(out)
+    return Result(out, n, sizes)
+
+
+# --------------------------------------------------------------------------
+# PowerPoint
+# --------------------------------------------------------------------------
+
+def _from_powerpoint(src: str, ext: str, out: str, workdir: str) -> Result:
+    """LibreOffice Impress, headless. One PDF page per slide, in slide order, at the
+    presentation's own slide size; no notes pages or handouts. Slides marked hidden in
+    the presentation are left out, as PowerPoint's own "Save as PDF" does by default."""
+    _office_precheck(src, ext)
+    stage = os.path.join(workdir, "stage")
+    os.makedirs(stage, exist_ok=True)
+    staged = os.path.join(stage, "presentation" + ext)
+    shutil.copyfile(src, staged)
+    try:
+        pdf = soffice_convert(staged, _pdf_filter("impress_pdf_Export"), stage)
+        shutil.move(pdf, out)
+    finally:
+        shutil.rmtree(stage, ignore_errors=True)
+    try:
+        n, sizes = inspect_pdf(out)
+    except ConversionError as e:
+        if e.code == "no_pages":
+            raise ConversionError("no_pages", "The presentation has no visible slides.")
+        raise
     return Result(out, n, sizes)
 
 
@@ -654,16 +684,24 @@ def office_version() -> str | None:
         return None
 
 
+SELFTEST_PPTX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "selftest.pptx")
+
+
 def self_test() -> dict:
-    """Convert a tiny Word document and workbook through the real pipeline."""
-    result = {"office_version": office_version(), "word": False, "excel": False, "error": None}
+    """Convert a tiny Word document, workbook and presentation through the real pipeline."""
+    result = {"office_version": office_version(), "word": False, "excel": False, "powerpoint": False,
+              "error": None}
     d = tempfile.mkdtemp(prefix="mch-selftest-")
     try:
-        for kind, ext, parts in (("word", ".docx", _MIN_DOCX), ("excel", ".xlsx", _MIN_XLSX)):
+        for kind, ext, parts in (("word", ".docx", _MIN_DOCX), ("excel", ".xlsx", _MIN_XLSX),
+                                 ("powerpoint", ".pptx", None)):
             wd = os.path.join(d, kind)
             os.makedirs(wd)
             src = os.path.join(wd, "original" + ext)
-            _write_zip(src, parts)
+            if parts is None:
+                shutil.copyfile(SELFTEST_PPTX, src)
+            else:
+                _write_zip(src, parts)
             res = convert(src, ext, wd)
             result[kind] = res.pages >= 1
     except ConversionError as e:
@@ -672,7 +710,8 @@ def self_test() -> dict:
         result["error"] = f"{type(e).__name__}"
     finally:
         shutil.rmtree(d, ignore_errors=True)
-    result["ok"] = bool(result["office_version"] and result["word"] and result["excel"])
+    result["ok"] = bool(result["office_version"] and result["word"] and result["excel"]
+                        and result["powerpoint"])
     return result
 
 

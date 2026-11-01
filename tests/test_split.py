@@ -6,7 +6,7 @@ also proves the browser is allowed to talk to the backend.
   BASE=https://ilove-wejdan.vercel.app API=https://ilovewejdan.onrender.com \
       FX=tests/fixtures python tests/test_split.py
 
-Uploads Word (.docx, .doc), Excel (.xlsx, .xls), PDF, PNG, JPG and JPEG through the real
+Uploads Word (.docx, .doc), Excel (.xlsx, .xls), PowerPoint (.pptx, .ppt), PDF, PNG, JPG and JPEG through the real
 page, checks each is converted, builds the combined PDF, downloads it and verifies every
 page by its text marker / source.
 """
@@ -25,9 +25,11 @@ API = os.environ["API"].rstrip("/")
 FX = os.environ.get("FX", os.path.join(os.path.dirname(__file__), "fixtures"))
 OUT = os.environ.get("OUT", tempfile.gettempdir())
 FILES = ["report_a.docx", "policy_legacy.doc", "audit_wide.xlsx", "summary_legacy.xls",
-         "scan_c.pdf", "chart_landscape.png", "photo_portrait.jpg", "phone_exif.jpeg"]
+         "scan_c.pdf", "chart_landscape.png", "photo_portrait.jpg", "phone_exif.jpeg",
+         "deck_wide.pptx", "deck_legacy.ppt"]
 EXPECT_PAGES = {"report_a.docx": 3, "policy_legacy.doc": 2, "audit_wide.xlsx": 2, "summary_legacy.xls": 1,
-                "scan_c.pdf": 4, "chart_landscape.png": 1, "photo_portrait.jpg": 1, "phone_exif.jpeg": 1}
+                "scan_c.pdf": 4, "chart_landscape.png": 1, "photo_portrait.jpg": 1, "phone_exif.jpeg": 1,
+                "deck_wide.pptx": 4, "deck_legacy.ppt": 2}
 failures = []
 
 
@@ -92,8 +94,10 @@ def main():
                 marks.append(m[0] if m else "(image)")
             want = ["MARK-DOCXA-P1", "MARK-DOCXA-P2", "MARK-DOCXA-P3", "MARK-DOCXB-P1", "MARK-DOCXB-P2",
                     "MARK-XLSWIDE-S1", "MARK-XLSWIDE-S2", "MARK-XLSNARROW-S1",
-                    "MARK-PDFC-P1", "MARK-PDFC-P2", "MARK-PDFC-P3", "MARK-PDFC-P4", "(image)", "(image)", "(image)"]
-            check(marks == want, f"downloaded '{d.value.suggested_filename}': {len(reader.pages)} pages, Word+Excel+PDF+images in order")
+                    "MARK-PDFC-P1", "MARK-PDFC-P2", "MARK-PDFC-P3", "MARK-PDFC-P4", "(image)", "(image)", "(image)",
+                    "MARK-PPTXA-S1", "MARK-PPTXA-S2", "MARK-PPTXA-S3", "MARK-PPTXA-S4",
+                    "MARK-PPTXB-S1", "MARK-PPTXB-S3"]
+            check(marks == want, f"downloaded '{d.value.suggested_filename}': {len(reader.pages)} pages, Word+Excel+PDF+images+PowerPoint in order")
             check(api_calls == {API} or (API == BASE and api_calls <= {BASE, ""}), f"all API traffic went to {sorted(api_calls)}")
             check(not csp, f"no CSP/CORS errors {csp[:1]}")
             check(not errs, f"no page errors {errs[:1]}")

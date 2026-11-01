@@ -6,7 +6,7 @@ Uses only the Python standard library (pypdf is used for extra checks if install
   python tests/smoke_api.py http://127.0.0.1:10000 tests/fixtures --keep-session   # prints session id
   python tests/smoke_api.py http://127.0.0.1:10000 tests/fixtures --expect-expired <session id>
 
-Uploads one file of every supported format, checks page counts and error messages for
+Uploads one file of every supported format (incl. PowerPoint .pptx/.ppt), checks page counts and error messages for
 bad files, re-selects Excel sheets, builds a combined PDF in a custom order with a
 rotation, downloads it, then deletes the session. Exit code 0 = all checks passed.
 """
@@ -28,11 +28,14 @@ GOOD = {                    # file -> expected pages
     "chart_landscape.png": 1,
     "photo_portrait.jpg": 1,
     "phone_exif.jpeg": 1,
+    "deck_wide.pptx": 4,
+    "deck_legacy.ppt": 2,
 }
 BAD = {                     # file -> (HTTP status, error code)
     "locked.pdf": (422, "password"),
     "not_really.docx": (422, "corrupt"),
     "notes.txt": (415, "unsupported"),
+    "fake.pptx": (422, "corrupt"),
 }
 
 failures = []

@@ -11,6 +11,7 @@ Upload Excel, Word, PDF and image files, arrange their pages, and download **one
 | `.pdf` | Kept as-is. Pages are copied, never re-rendered, so quality and selectable text are unchanged. |
 | `.png` `.jpg` `.jpeg` | One page per image. JPEG data is embedded unchanged and PNG losslessly. Aspect ratio and phone (EXIF) orientation are respected. You can choose *Fit on A4 page* or *Keep original image size*. |
 | `.docx` `.doc` | LibreOffice, headless. Embedded images keep their full resolution. |
+| `.pptx` `.ppt` | LibreOffice Impress, headless: one PDF page per slide, in slide order, at the presentation's slide size. Backgrounds, tables, charts and images are kept. Notes and handouts are not included, and slides marked hidden are left out (as PowerPoint's own "Save as PDF" does). |
 | `.xlsx` `.xls` | Each chosen sheet is set to fit one page wide, so no columns are cut off. Wide tables switch to landscape. Use *Choose sheets* to pick which sheets to include. Only print settings change: cell formatting, borders and images are kept. |
 
 **The three steps:**

@@ -463,6 +463,68 @@ def t_restart(b):
     return msg[:80] + "..."
 
 
+@test("P1. PPTX alone -> one page per slide, slide size and order kept")
+def tp1(b):
+    c, pg, errs = fresh(b)
+    upload(pg, ["deck_wide.pptx"])
+    badge = pg.inner_text("#file-table-body .fmt-tag")
+    assert badge == "PPT", badge
+    path, _ = download(pg, tag="tp1")
+    verify(pg, path)
+    mk = markers(path)
+    assert mk == [f"MARK-PPTXA-S{i}" for i in range(1, 5)], mk
+    p1 = PdfReader(path).pages[0]
+    w, h = float(p1.mediabox.width), float(p1.mediabox.height)
+    assert abs(w / h - 16 / 9) < 0.01, (w, h)
+    assert not errs, errs
+    c.close()
+    return f"4 slides -> 4 pages, {w:.0f}x{h:.0f} pt (16:9)"
+
+
+@test("P2. PPT (legacy) alone -> PDF; hidden slide left out like PowerPoint's Save as PDF")
+def tp2(b):
+    c, pg, errs = fresh(b)
+    upload(pg, ["deck_legacy.ppt"])
+    path, _ = download(pg, tag="tp2")
+    verify(pg, path)
+    mk = markers(path)
+    assert mk == ["MARK-PPTXB-S1", "MARK-PPTXB-S3"], mk
+    p1 = PdfReader(path).pages[0]
+    assert abs(float(p1.mediabox.width) / float(p1.mediabox.height) - 4 / 3) < 0.01
+    c.close()
+    return " ".join(mk) + " (4:3)"
+
+
+@test("P3+P5+P6. Several presentations + Word, Excel, PDF, images -> one PDF in the chosen order")
+def tp3(b):
+    c, pg, errs = fresh(b)
+    upload(pg, ["deck_wide.pptx", "report_a.docx", "deck_43.pptx", "audit_wide.xlsx", "scan_c.pdf",
+                "photo_portrait.jpg", "deck_legacy.ppt", "fake.pptx"])
+    rows = pg.eval_on_selector_all("#file-table-body tr", """rs => rs.map(r => [r.querySelector('.file-name').textContent,
+        r.querySelector('.fmt-tag').textContent, r.querySelector('.status-badge').textContent.trim()])""")
+    st_by = {n: (t, s) for n, t, s in rows}
+    for n in ("deck_wide.pptx", "deck_43.pptx", "deck_legacy.ppt"):
+        assert st_by[n] == ("PPT", "Ready"), (n, st_by[n])
+    assert st_by["fake.pptx"][1] == "Not added", st_by["fake.pptx"]
+    # reorder across files: last presentation page to the front, a Word page to the end
+    to_step(pg, 2)
+    n = pg.locator("#page-grid .page-card").count()
+    drag(pg, n - 1, 0)
+    pg.locator("#page-grid .page-card").nth(5).locator("[data-act=move]").click()
+    pg.fill("#move-input", str(n))
+    pg.click("#move-ok")
+    pg.wait_for_timeout(300)
+    path, _ = download(pg, tag="tp3")
+    order = verify(pg, path)
+    mk = markers(path)
+    assert sum(m.startswith("MARK-PPTX") for m in mk) == 4 + 2 + 2, mk
+    r = PdfReader(path)
+    assert len(r.pages) == 4 + 3 + 2 + 2 + 4 + 1 + 2
+    assert not errs, errs
+    c.close()
+    return f"{len(r.pages)} pages verified page-by-page; first: {order[0]}, last: {order[-1]}"
+
+
 @test("12a. Desktop layout (1280px) - no horizontal overflow")
 def t12a(b):
     c, pg, errs = fresh(b, viewport={"width": 1280, "height": 900})
@@ -530,7 +592,7 @@ if __name__ == "__main__":
     with sync_playwright() as p:
         browser = p.chromium.launch()
         browser._playwright = p
-        for t in [t1, t2, t3, t4, t5, t5b, t7, t_docs, t9, t10, t11, t_reset, t_refresh, t_restart, t12a, t12b]:
+        for t in [t1, t2, t3, t4, t5, t5b, t7, t_docs, t9, t10, t11, t_reset, t_refresh, t_restart, tp1, tp2, tp3, t12a, t12b]:
             if only and t.__name__ not in only:
                 continue
             _src_cache.clear()

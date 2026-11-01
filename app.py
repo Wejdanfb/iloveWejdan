@@ -228,6 +228,7 @@ def healthz():
         "office_converter": found,
         "office_version": _office.get("office_version"),
         "office_selftest": state,
+        "office_powerpoint": _office.get("powerpoint"),
         "office_error": _office.get("error"),
         "free_disk_mb": free_mb,
         "max_upload_mb": MAX_UPLOAD_MB,
@@ -270,7 +271,8 @@ def upload(sid):
     kind = converter.kind_for(name)
     if kind is None:
         return api_error(415, "unsupported",
-                         "This file type isn't supported. Use Excel (.xlsx, .xls), Word (.docx, .doc), PDF, PNG or JPG.")
+                         "This file type isn't supported. Use Excel (.xlsx, .xls), Word (.docx, .doc), "
+                         "PowerPoint (.pptx, .ppt), PDF, PNG or JPG.")
 
     incoming = request.content_length or 0
     try:

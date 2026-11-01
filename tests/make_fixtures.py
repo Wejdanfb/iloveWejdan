@@ -199,6 +199,59 @@ def invalid():
         print("could not create locked.docx:", e)
 
 
+def powerpoint():
+    """16:9 deck with background, table, chart and picture; 4:3 deck with a hidden slide;
+    the 4:3 deck also saved as legacy .ppt by LibreOffice."""
+    from pptx import Presentation
+    from pptx.chart.data import CategoryChartData
+    from pptx.dml.color import RGBColor
+    from pptx.enum.chart import XL_CHART_TYPE
+    from pptx.util import Inches, Pt
+
+    prs = Presentation()
+    prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)        # 16:9
+    blank = prs.slide_layouts[6]
+    titled = prs.slide_layouts[5]
+
+    s = prs.slides.add_slide(titled)
+    s.shapes.title.text = "MARK-PPTXA-S1"
+    s.background.fill.solid(); s.background.fill.fore_color.rgb = RGBColor(0xEF, 0xEE, 0xFF)
+    tf = s.shapes.add_textbox(Inches(1), Inches(2.2), Inches(11), Inches(2)).text_frame
+    tf.text = "Quarterly nursing quality review"
+    tf.paragraphs[0].runs[0].font.size = Pt(36)
+    p2 = tf.add_paragraph(); p2.text = "مراجعة جودة التمريض"; p2.runs[0].font.size = Pt(28)
+
+    s = prs.slides.add_slide(titled)
+    s.shapes.title.text = "MARK-PPTXA-S2"
+    rows, cols = 4, 3
+    tbl = s.shapes.add_table(rows, cols, Inches(1), Inches(2), Inches(11), Inches(3)).table
+    for r in range(rows):
+        for c in range(cols):
+            tbl.cell(r, c).text = ["Unit", "Score", "Findings"][c] if r == 0 else f"R{r}C{c}"
+
+    s = prs.slides.add_slide(titled)
+    s.shapes.title.text = "MARK-PPTXA-S3"
+    cd = CategoryChartData(); cd.categories = ["Q1", "Q2", "Q3", "Q4"]
+    cd.add_series("Compliance", (82, 88, 91, 95))
+    s.shapes.add_chart(XL_CHART_TYPE.COLUMN_CLUSTERED, Inches(1), Inches(1.8), Inches(11), Inches(5), cd)
+
+    s = prs.slides.add_slide(titled)
+    s.shapes.title.text = "MARK-PPTXA-S4"
+    buf = io.BytesIO(); picture(1600, 800, "PPT IMG 2:1", (20, 107, 113)).save(buf, "PNG"); buf.seek(0)
+    s.shapes.add_picture(buf, Inches(2.67), Inches(2), width=Inches(8))
+    prs.save(P("deck_wide.pptx"))
+
+    prs = Presentation()                                                    # default 4:3
+    for i in (1, 2, 3):
+        s = prs.slides.add_slide(prs.slide_layouts[5])
+        s.shapes.title.text = f"MARK-PPTXB-S{i}"
+        if i == 2:
+            s._element.set("show", "0")                                     # hidden slide
+    prs.save(P("deck_43.pptx"))
+    legacy(P("deck_43.pptx"), "ppt", "deck_legacy.ppt")
+    open(P("fake.pptx"), "w").write("not a presentation")
+
+
 excel_wide()
 excel_narrow()
 word_docx()
@@ -207,6 +260,7 @@ images()
 invalid()
 legacy(P("policy_b.docx"), "doc", "policy_legacy.doc")
 legacy(P("summary_narrow.xlsx"), "xls", "summary_legacy.xls")
+powerpoint()
 print("fixtures in", OUT)
 for n in sorted(os.listdir(OUT)):
     print(f"  {n:24s} {os.path.getsize(P(n)):>10,d}")
