@@ -209,6 +209,23 @@ def index():
                            accept=",".join(converter.SUPPORTED_EXTENSIONS))
 
 
+# Browsers and iOS look for these at the site root as well as via the <link> tags.
+@app.get("/favicon.ico")
+def favicon():
+    return send_file(os.path.join(app.static_folder, "icons", "favicon.ico"), mimetype="image/vnd.microsoft.icon", max_age=86400)
+
+
+@app.get("/apple-touch-icon.png")
+@app.get("/apple-touch-icon-precomposed.png")
+def apple_touch_icon():
+    return send_file(os.path.join(app.static_folder, "icons", "apple-touch-icon.png"), mimetype="image/png", max_age=86400)
+
+
+@app.get("/site.webmanifest")
+def webmanifest():
+    return send_file(os.path.join(app.static_folder, "site.webmanifest"), mimetype="application/manifest+json", max_age=3600)
+
+
 @app.get("/healthz")
 def healthz():
     """200 while healthy (or while the start-up check is still running);
