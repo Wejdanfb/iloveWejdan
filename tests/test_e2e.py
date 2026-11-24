@@ -224,7 +224,7 @@ def t4(b):
     assert names == 8, f"{names} ready"
     path, sugg = download(pg, tag="t4")
     order = verify(pg, path)
-    assert sugg == "MCH_Combined_Document.pdf", sugg
+    assert sugg == "ilove_Wejdan.pdf", sugg
     assert not errs, errs
     c.close()
     return f"{len(order)} pages, default name {sugg}"

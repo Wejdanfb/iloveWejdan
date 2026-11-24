@@ -41,7 +41,7 @@
   function fileTypeLabel(f) {
     return FILE_TYPE_LABEL[f.ftype] || (f.ext ? f.ext.slice(1).toUpperCase() : "FILE");
   }
-  const DEFAULT_NAME = "MCH_Combined_Document";
+  const DEFAULT_NAME = "ilove_Wejdan";
   const ICON = {
     rotl: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>',
     rotr: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>',
@@ -215,7 +215,7 @@
     const onServer = new Map(server.files.map(m => [m.id, m]));
     state.sid = saved.sid;
     state.imageMode = saved.imageMode || "a4";
-    state.filename = saved.filename || DEFAULT_NAME;
+    state.filename = (saved.filename && saved.filename !== "MCH_Combined_Document") ? saved.filename : DEFAULT_NAME;
     state.customized = !!saved.customized;
     state.files = (saved.files || []).filter(f => onServer.has(f.id) && onServer.get(f.id).version === f.version);
     state.files.forEach(f => { f.ftype = fileType(f.name); delete f.color; });   // older saves had per-document colours

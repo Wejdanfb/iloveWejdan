@@ -33,7 +33,7 @@ MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "50"))
 MAX_SESSION_MB = int(os.environ.get("MAX_SESSION_MB", "300"))     # all files of one user together
 MIN_FREE_DISK_MB = int(os.environ.get("MIN_FREE_DISK_MB", "200"))  # refuse uploads below this
 MAX_PAGES = int(os.environ.get("MAX_PAGES", "3000"))               # pages in one combined PDF
-DEFAULT_NAME = "MCH_Combined_Document"
+DEFAULT_NAME = "ilove_Wejdan"
 
 # --- Split deployment: page on Vercel, processing on Render -------------------------
 # Vercel's Python runtime has no LibreOffice, keeps no files between requests and caps
