@@ -46,10 +46,11 @@ if ON_VERCEL:
     os.environ.setdefault("MCH_SKIP_SELFTEST", "1")     # no LibreOffice there by design
 
 # Sites allowed to call this API from the browser (only matters on the Render backend).
-# Comma-separated; "*" wildcards allowed. Add a custom domain here if you attach one.
+# Comma-separated; "*" wildcards allowed. Every domain the Vercel page is served on must be
+# listed here, or the browser blocks its uploads (the page itself still loads).
 CORS_ORIGINS = [o.strip().rstrip("/") for o in os.environ.get(
     "CORS_ORIGINS",
-    "https://ilove-wejdan.vercel.app,https://ilove-wejdan-*-wejdan6.vercel.app",
+    "https://ilove-wejdan.vercel.app,https://ilove-wejdan-*-wejdan6.vercel.app,https://ilove.wejdanb.com",
 ).split(",") if o.strip()]
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")

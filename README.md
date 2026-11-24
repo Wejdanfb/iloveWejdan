@@ -45,7 +45,7 @@ everything straight to Render.
 | Setting | Where | Default | Purpose |
 |---|---|---|---|
 | `API_BASE_URL` | Vercel (optional) | `https://ilovewejdan.onrender.com` when on Vercel, otherwise same site | Backend the page talks to |
-| `CORS_ORIGINS` | Render (optional) | `https://ilove-wejdan.vercel.app,https://ilove-wejdan-*-wejdan6.vercel.app` | Sites allowed to call the API. Add a custom domain here if you attach one. |
+| `CORS_ORIGINS` | Render (optional) | `https://ilove-wejdan.vercel.app,https://ilove-wejdan-*-wejdan6.vercel.app,https://ilove.wejdanb.com` | Sites allowed to call the API. Add a custom domain here if you attach one. |
 
 - **Credentials:** no secrets are involved. Sessions are random ids, and no cookies or credentials are sent.
 - **Browser security:** the page's Content-Security-Policy allows connections only to its own site and the API.
