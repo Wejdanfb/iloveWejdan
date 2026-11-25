@@ -751,7 +751,6 @@ code { font-family: var(--font-mono); font-size: 12px; background: var(--bg); pa
 .doc-list .doc-bar { align-self: stretch; width: 4px; border-radius: 0 2px 2px 0; background: var(--doc); flex: 0 0 auto; }
 .doc-list .doc-name { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12.5px; word-break: break-all; }
 .doc-list .doc-pages { color: var(--ink-soft); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.table-note { font-size: 12px; color: var(--ink-faint); margin: 8px 0 0; }
 
 .organize-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
 .organize-actions { display: flex; gap: 8px; }
